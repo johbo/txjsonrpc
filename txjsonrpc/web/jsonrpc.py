@@ -11,23 +11,22 @@ API Stability: unstable
 Maintainer: U{Duncan McGreggor<mailto:oubiwann@adytum.us>}
 """
 from __future__ import nested_scopes
-import urlparse
-import xmlrpclib
 
 from twisted.web import resource, server
 from twisted.internet import defer, reactor
 from twisted.python import log, context
 from twisted.web import http
+from six.moves import xmlrpc_client
+from six.moves.urllib import parse
 
 from txjsonrpc import jsonrpclib
 from txjsonrpc.jsonrpc import BaseProxy, BaseQueryFactory, BaseSubhandler
 
 
-# Useful so people don't need to import xmlrpclib directly.
-Fault = xmlrpclib.Fault
-Binary = xmlrpclib.Binary
-Boolean = xmlrpclib.Boolean
-DateTime = xmlrpclib.DateTime
+Fault = xmlrpc_client.Fault
+Binary = xmlrpc_client.Binary
+Boolean = xmlrpc_client.Boolean
+DateTime = xmlrpc_client.DateTime
 
 
 def with_request(method):
@@ -143,7 +142,7 @@ class JSONRPC(resource.Resource, BaseSubhandler):
             d = None
             if hasattr(function, 'requires_auth'):
                 d = defer.maybeDeferred(self.auth, token, functionPath)
-        except jsonrpclib.Fault, f:
+        except jsonrpclib.Fault as f:
             self._cbRender(f, request, id, version)
         else:
             if not self.is_jsonp:
@@ -275,7 +274,7 @@ class Proxy(BaseProxy):
         of default twisted.internet.ssl.ClientContextFactory.
         """
         BaseProxy.__init__(self, version, factoryClass)
-        scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
+        scheme, netloc, path, params, query, fragment = parse.urlparse(url)
         netlocParts = netloc.split('@')
         if len(netlocParts) == 2:
             userpass = netlocParts.pop(0).split(':')

@@ -17,3 +17,4 @@ debian/*.log
 debian/*.substvars
 debian/python-txjsonrpc
 _trial_temp
+.tox

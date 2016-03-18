@@ -75,13 +75,13 @@ class LoadsTestCase(TestCase):
     def test_FaultLoads(self):
         dl = []
         for version in (VERSION_PRE1, VERSION_2, VERSION_1):
-            object = Fault("code", "message")
-            d = defer.maybeDeferred(loads, dumps(object, version=version))
+            fault = Fault("code", "message")
+            d = defer.maybeDeferred(loads, dumps(fault, version=version))
             d = self.assertFailure(d, Fault)
 
             def callback(exc):
-                self.assertEquals(exc.faultCode, object.faultCode)
-                self.assertEquals(exc.faultString, object.faultString)
+                self.assertEquals(exc.faultCode, fault.faultCode)
+                self.assertEquals(exc.faultString, fault.faultString)
             d.addCallback(callback)
 
             dl.append(d)

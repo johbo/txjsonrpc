@@ -3,6 +3,7 @@
 """
 Test JSON-RPC over TCP support.
 """
+import json
 from unittest import skip as skip_test
 
 from twisted.internet import reactor, defer
@@ -191,15 +192,13 @@ class JSONRPCMethodMaxLengthTestCase(JSONRPCTestCase):
                 lengths.append(self.MAX_LENGTH)
                 QueryFactory.__init__(self, *args)
 
-        def printError(error):
-            print "Error!"
-            print error
+        def assertResult(result, expected):
+            self.assertEquals(expected, result['result'][0])
 
         dl = []
         for meth, args, outp in inputOutput:
             d = self.proxy().callRemote(meth, factoryClass=Factory, *args)
-            d.addCallback(self.assertEquals, outp)
-            d.addErrback(printError)
+            d.addCallback(assertResult, outp)
             dl.append(d)
         d = defer.DeferredList(dl, fireOnOneErrback=True)
         d.addCallback(checkMaxLength)

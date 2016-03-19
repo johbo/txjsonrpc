@@ -1,3 +1,5 @@
+import json
+
 from twisted.trial.unittest import TestCase
 
 from txjsonrpc.jsonrpc import BaseProxy, BaseQueryFactory
@@ -12,30 +14,43 @@ class BaseQueryFactoryTestCase(TestCase):
         self.assertTrue(factory.deferred is not None)
 
     def test_buildVersionedPayloadPre1(self):
-        factory = BaseQueryFactory("someMethod",version=VERSION_PRE1)
+        expected = {
+            'params': [],
+            'method': ''}
+
+        factory = BaseQueryFactory("someMethod", version=VERSION_PRE1)
         payload = factory._buildVersionedPayload()
-        self.assertEquals(
-            payload, '{"params": [], "method": ""}')
+
+        self.assertEqual(expected, json.loads(payload))
 
     def test_buildVersionedPayload1(self):
+        expected = {
+            'params': [],
+            'method': '',
+            'id': 1}
+
         factory = BaseQueryFactory("someMethod", version=VERSION_1)
         payload = factory._buildVersionedPayload()
-        self.assertEquals(
-            payload,
-            '{"params": [], "method": "", "id": 1}')
+
+        self.assertEquals(expected, json.loads(payload))
 
     def test_buildVersionedPayload2(self):
+        expected = {
+            'params': [],
+            'jsonrpc': '2.0',
+            'method': '',
+            'id': 1}
+
         factory = BaseQueryFactory("someMethod", version=VERSION_2)
         payload = factory._buildVersionedPayload()
-        self.assertEquals(
-            payload,
-            '{"params": [], "jsonrpc": "2.0", "method": "", "id": 1}')
+
+        self.assertEquals(expected, json.loads(payload))
 
     def test_parseResponseNoJSON(self):
 
         def check_error(error):
             self.assertEquals(
-                error.value.message, "No JSON object could be decoded")
+                'No JSON object could be decoded', str(error.value))
 
         factory = BaseQueryFactory("someMethod")
         d = factory.deferred

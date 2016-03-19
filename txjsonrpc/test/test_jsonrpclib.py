@@ -1,3 +1,5 @@
+import json
+
 from twisted.trial.unittest import TestCase
 from twisted.internet import defer
 from txjsonrpc.jsonrpclib import (
@@ -12,12 +14,15 @@ class DumpTestCase(TestCase):
         self.assertEquals(result, '{"some": "data"}')
 
     def test_noVersionError(self):
-        object = Fault("code", "message")
-        result = dumps(object)
-        self.assertEquals(
-            result,
-            ('{"fault": "Fault", "faultCode": "code", '
-             '"faultString": "message"}'))
+        expected = {
+            'fault': 'Fault',
+            'faultCode': 'code',
+            'faultString': 'message'}
+
+        fault = Fault("code", "message")
+        result = dumps(fault)
+
+        self.assertEquals(expected, json.loads(result))
 
     def test_versionPre1(self):
         object = {"some": "data"}
@@ -25,42 +30,63 @@ class DumpTestCase(TestCase):
         self.assertEquals(result, '{"some": "data"}')
 
     def test_errorVersionPre1(self):
-        object = Fault("code", "message")
-        result = dumps(object, version=VERSION_PRE1)
-        self.assertEquals(
-            result,
-            ('{"fault": "Fault", "faultCode": "code", '
-             '"faultString": "message"}'))
+        expected = {
+            'fault': 'Fault',
+            'faultCode': 'code',
+            'faultString': 'message'}
+
+        fault = Fault("code", "message")
+        result = dumps(fault, version=VERSION_PRE1)
+
+        self.assertEquals(expected, json.loads(result))
 
     def test_version1(self):
-        object = {"some": "data"}
-        result = dumps(object, version=VERSION_1)
-        self.assertEquals(
-            result,
-            '{"id": null, "result": {"some": "data"}, "error": null}')
+        expected = {
+            'id': None,
+            'result': {'some': 'data'},
+            'error': None}
+
+        data = {"some": "data"}
+        result = dumps(data, version=VERSION_1)
+
+        self.assertEquals(expected, json.loads(result))
 
     def test_errorVersion1(self):
-        object = Fault("code", "message")
-        result = dumps(object, version=VERSION_1)
-        self.assertEquals(
-            result,
-            ('{"id": null, "result": null, "error": {"fault": "Fault", '
-             '"faultCode": "code", "faultString": "message"}}'))
+        expected = {
+            'id': None,
+            'result': None,
+            'error': {
+                'fault': 'Fault',
+                'faultCode': 'code',
+                'faultString': 'message'}}
+
+        fault = Fault("code", "message")
+        result = dumps(fault, version=VERSION_1)
+
+        self.assertEquals(expected, json.loads(result))
 
     def test_version2(self):
-        object = {"some": "data"}
-        result = dumps(object, version=VERSION_2)
+        expected = {'id': None, 'jsonrpc': '2.0', 'result': {'some': 'data'}}
+
+        data = {"some": "data"}
+        result = dumps(data, version=VERSION_2)
+
         self.assertEquals(
-            result,
-            '{"jsonrpc": "2.0", "result": {"some": "data"}, "id": null}')
+            expected, json.loads(result))
 
     def test_errorVersion2(self):
-        object = Fault("code", "message")
-        result = dumps(object, version=VERSION_2)
-        self.assertEquals(
-            result,
-            ('{"jsonrpc": "2.0", "id": null, "error": {"message": "Fault", '
-                '"code": "code", "data": "message"}}'))
+        expected = {
+            'id': None,
+            'jsonrpc': '2.0',
+            'error': {
+                'message': 'Fault',
+                'code': 'code',
+                'data': 'message'}}
+
+        fault = Fault("code", "message")
+        result = dumps(fault, version=VERSION_2)
+
+        self.assertEquals(expected, json.loads(result))
 
 
 class LoadsTestCase(TestCase):

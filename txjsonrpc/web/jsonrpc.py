@@ -16,6 +16,7 @@ from twisted.web import resource, server
 from twisted.internet import defer, reactor
 from twisted.python import log, context
 from twisted.web import http
+import six
 from six.moves import xmlrpc_client
 from six.moves.urllib import parse
 
@@ -35,6 +36,7 @@ def with_request(method):
     """
     method.with_request = True
     return method
+
 
 def requires_auth():
     def inner(method):
@@ -112,9 +114,9 @@ class JSONRPC(resource.Resource, BaseSubhandler):
         # Unmarshal the JSON-RPC data.
         content = request.content.read()
         log.msg("Client({}): {}".format(request.client, content))
-        if not content and request.method=='GET' and request.args.has_key('request'):
-            content=request.args['request'][0]
-        self.callback = request.args['callback'][0] if request.args.has_key('callback') else None
+        if not content and request.method == 'GET' and 'request' in request.args:
+            content = request.args['request'][0]
+        self.callback = request.args['callback'][0] if 'callback' in request.args else None
         self.is_jsonp = True if self.callback else False
         parsed = jsonrpclib.loads(content)
         functionPath = parsed.get("method")
@@ -173,10 +175,20 @@ class JSONRPC(resource.Resource, BaseSubhandler):
                 result = (result,)
             # Convert the result (python) to JSON-RPC
         try:
-            s = jsonrpclib.dumps(result, id=id, version=version) if not self.is_jsonp else "%s(%s)" %(self.callback,jsonrpclib.dumps(result, id=id, version=version))
+            s = jsonrpclib.dumps(result, id=id, version=version) \
+                if not self.is_jsonp \
+                else "%s(%s)" % (
+                    self.callback,
+                    jsonrpclib.dumps(
+                        result, id=id, version=version))
         except:
             f = jsonrpclib.Fault(self.FAILURE, "can't serialize output")
-            s = jsonrpclib.dumps(f, id=id, version=version) if not self.is_jsonp else "%s(%s)" %(self.callback,jsonrpclib.dumps(f, id=id, version=version))
+            s = jsonrpclib.dumps(f, id=id, version=version) \
+                if not self.is_jsonp \
+                else "%s(%s)" % (
+                    self.callback,
+                    jsonrpclib.dumps(
+                        f, id=id, version=version))
         request.setHeader("content-length", str(len(s)))
         request.write(s)
         request.finish()
@@ -207,7 +219,11 @@ class QueryProtocol(http.HTTPClient):
         self.sendHeader('Content-length', str(len(self.factory.payload)))
         if self.factory.user:
             auth = '%s:%s' % (self.factory.user, self.factory.password)
-            auth = auth.encode('base64').strip()
+            if six.PY3:
+                import codecs
+                auth = codecs.encode(auth)
+            elif six.PY2:
+                auth = auth.encode('base64').strip()
             self.sendHeader('Authorization', 'Basic %s' % (auth,))
         self.endHeaders()
         self.transport.write(self.factory.payload)
@@ -243,7 +259,8 @@ class Proxy(BaseProxy):
     """
 
     def __init__(self, url, user=None, password=None,
-                 version=jsonrpclib.VERSION_PRE1, factoryClass=QueryFactory, ssl_ctx_factory = None):
+                 version=jsonrpclib.VERSION_PRE1,
+                 factoryClass=QueryFactory, ssl_ctx_factory=None):
         """
         @type url: C{str}
         @param url: The URL to which to post method calls.  Calls will be made
@@ -306,8 +323,8 @@ class Proxy(BaseProxy):
         version = self._getVersion(kwargs)
         # XXX generate unique id and pass it as a parameter
         factoryClass = self._getFactoryClass(kwargs)
-        factory = factoryClass(self.path, self.host, method, self.user,
-            self.password, version, *args)
+        factory = factoryClass(
+            self.path, self.host, method, self.user, self.password, version, *args)
         if self.secure:
             from twisted.internet import ssl
             if self.ssl_ctx_factory is None:

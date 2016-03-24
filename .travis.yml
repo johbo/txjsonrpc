@@ -8,8 +8,12 @@ env:
     - TOX_ENV=pypy-twlatest
     - TOX_ENV=pyflakes
 
-install:
-    - ./.travis/install.sh
+before_install:
+    - sudo add-apt-repository -y ppa:pypy/ppa
+    - sudo apt-get -y update
+    - sudo apt-get install -y pypy pypy-dev
+    - sudo rm -rf /usr/local/pypy/bin
+    - pip install tox
 
 script: tox -e $TOX_ENV
 

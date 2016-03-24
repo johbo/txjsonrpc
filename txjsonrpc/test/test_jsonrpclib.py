@@ -1,3 +1,5 @@
+import json
+
 from twisted.trial.unittest import TestCase
 from twisted.internet import defer
 from txjsonrpc.jsonrpclib import (
@@ -55,12 +57,21 @@ class DumpTestCase(TestCase):
             '{"jsonrpc": "2.0", "result": {"some": "data"}, "id": null}')
 
     def test_errorVersion2(self):
-        object = Fault("code", "message")
-        result = dumps(object, version=VERSION_2)
-        self.assertEquals(
-            result,
-            ('{"jsonrpc": "2.0", "id": null, "error": {"message": "Fault", '
-                '"code": "code", "data": "message"}}'))
+        expected = {
+            'jsonrpc': '2.0',
+            'id': None,
+            'error': {
+                'message': 'message',
+                'code': 'code',
+                'data': 'message'
+                }
+            }
+
+        fault = Fault('code', 'message')
+        result = dumps(fault, version=VERSION_2)
+        json_result = json.loads(result)
+
+        self.assertEquals(expected, json_result)
 
 
 class LoadsTestCase(TestCase):

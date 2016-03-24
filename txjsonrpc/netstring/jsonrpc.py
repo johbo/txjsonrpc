@@ -33,8 +33,8 @@ class JSONRPC(basic.NetstringReceiver, BaseSubhandler):
     separator = '.'
     closed = 0
 
-
     def __init__(self, version=jsonrpclib.VERSION_2):
+        BaseSubhandler.__init__(self)
         self.version = version
 
     def __call__(self):
@@ -49,29 +49,27 @@ class JSONRPC(basic.NetstringReceiver, BaseSubhandler):
 
         req, req_id = self._cbDispatch(parser, unmarshaller)
         deferred.addCallback(lambda x: req)
-        deferred.addErrback(self._ebRender, req_id = req_id)
-        deferred.addCallback(self._cbRender, req_id = req_id)
+        deferred.addErrback(self._ebRender, req_id=req_id)
+        deferred.addCallback(self._cbRender, req_id=req_id)
         return deferred
 
     def _cbDispatch(self, parser, unmarshaller):
         parser.close()
-        args, functionPath, req_id  = unmarshaller.close(), unmarshaller.getmethodname(), unmarshaller.getid()
+        args, functionPath, req_id = (
+            unmarshaller.close(),
+            unmarshaller.getmethodname(),
+            unmarshaller.getid())
         function = self._getFunction(functionPath)
         return defer.maybeDeferred(function, *args), req_id
 
     def _cbRender(self, result, req_id):
         if not isinstance(result, jsonrpclib.Fault):
             result = (result,)
-        #s = None
-        #e = None
         try:
             s = jsonrpclib.dumps(result, id=req_id, version=self.version)
         except:
             f = jsonrpclib.Fault(self.FAILURE, "can't serialize output")
-            #e = jsonrpclib.dumps(f)
             s = jsonrpclib.dumps(f, id=req_id, version=self.version)
-        #result = {'result': result, 'error': e}
-        #return self.sendString(jsonrpclib.dumps(result))
         return self.sendString(s)
 
     def _ebRender(self, failure, req_id):
@@ -100,7 +98,9 @@ class QueryFactory(BaseQueryFactory):
     data = ''
 
     def clientConnectionLost(self, _, reason):
-        self.parseResponse(self.data)
+        # If the buffer is empty, there's nothing to parse.
+        if len(self.data) is not 0:
+            self.parseResponse(self.data)
 
 
 class Proxy(BaseProxy):

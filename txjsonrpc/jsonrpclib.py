@@ -61,14 +61,16 @@ def dumps(obj, **kwargs):
         id = None
     if isinstance(obj, Exception):
         result = None
-        if version!=VERSION_2:
-            error = {'fault': obj.__class__.__name__,
-                    'faultCode': obj.faultCode,
-                    'faultString': obj.faultString}
+        if version != VERSION_2:
+            error = {
+                'fault': obj.__class__.__name__,
+                'faultCode': obj.faultCode,
+                'faultString': obj.faultString}
         else:
-            error = {'message': obj.faultString,
-                    'code': obj.faultCode,
-                    'data': ''}
+            error = {
+                'message': obj.faultString,
+                'code': obj.faultCode,
+                'data': obj.faultString}
     else:
         result = obj
         error = None

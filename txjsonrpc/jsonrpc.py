@@ -41,17 +41,20 @@ class BaseSubhandler:
             prefix, functionPath = functionPath.split(self.separator, 1)
             handler = self.getSubHandler(prefix)
             if handler is None:
-                raise jsonrpclib.NoSuchFunction(jsonrpclib.METHOD_NOT_FOUND,
+                raise jsonrpclib.NoSuchFunction(
+                    jsonrpclib.METHOD_NOT_FOUND,
                     "no such sub-handler %s" % prefix)
             return handler._getFunction(functionPath)
         if functionPath == '__dir__':
             return self._listFunctions
         f = getattr(self, "jsonrpc_%s" % functionPath, None)
         if not f:
-            raise jsonrpclib.NoSuchFunction(jsonrpclib.METHOD_NOT_FOUND,
+            raise jsonrpclib.NoSuchFunction(
+                jsonrpclib.METHOD_NOT_FOUND,
                 "function %s not found" % functionPath)
         elif not callable(f):
-            raise jsonrpclib.NoSuchFunction(jsonrpclib.METHOD_NOT_CALLABLE,
+            raise jsonrpclib.NoSuchFunction(
+                jsonrpclib.METHOD_NOT_CALLABLE,
                 "function %s not callable" % functionPath)
         else:
             return f
@@ -70,6 +73,7 @@ class BaseQueryFactory(protocol.ClientFactory):
 
     # XXX add an "id" parameter
     id = 0
+
     def __init__(self, method, version=jsonrpclib.VERSION_PRE1, *args):
         # XXX pass the "id" parameter here
         self.version = version
@@ -124,7 +128,7 @@ class BaseProxy:
 
     def _getVersion(self, keywords):
         version = keywords.get("version")
-        if version == None:
+        if version is None:
             version = self.version
         return version
 

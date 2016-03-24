@@ -21,7 +21,7 @@ class TestValueError(ValueError):
     pass
 
 
-class Test(JSONRPC):
+class TestRPC(JSONRPC):
 
     FAILURE = 666
     NOT_FOUND = jsonrpclib.METHOD_NOT_FOUND
@@ -92,7 +92,7 @@ class JSONRPCTestCase(unittest.TestCase):
     timeout = 2
 
     def setUp(self):
-        self.p = reactor.listenTCP(0, jsonrpc.RPCFactory(Test),
+        self.p = reactor.listenTCP(0, jsonrpc.RPCFactory(TestRPC),
                                    interface="127.0.0.1")
         self.port = self.p.getHost().port
 
@@ -103,39 +103,29 @@ class JSONRPCTestCase(unittest.TestCase):
         return Proxy("127.0.0.1", self.port)
 
     def testResults(self):
+        expected = {"a": ["b", "c", 12, []], "D": "foo"}
 
-        inputOutput = [
-            ("add", (2, 3), 5),
-            ("defer", ("a",), "a"),
-            ("dict", ({"a": 1}, "a"), 1),
-            ("pair", ("a", 1), ["a", 1]),
-            ("complex", (), {"a": ["b", "c", 12, []], "D": "foo"})]
-
-        def printError(error):
-            print("Error!")
-            print(error)
-
-        dl = []
-        for meth, args, outp in inputOutput:
-            d = self.proxy().callRemote(meth, *args)
-            d.addCallback(self.assertEquals, outp)
-            d.addErrback(printError)
-            dl.append(d)
-        return defer.DeferredList(dl, fireOnOneErrback=True)
+        d = self.proxy().callRemote('complex')
+        d.addCallback(lambda result: self.assertEquals(expected, result['result'][0]))
+        return d
 
     def testErrors(self):
+        calls = [
+            (666, 'fail'),
+            (666, 'deferFail'),
+            (12, 'fault'),
+            (17, 'deferFault'),
+            ]
 
         dl = []
-        for code, methodName in [(666, "fail"), (666, "deferFail"),
-                                 (12, "fault"), (-32601, "noSuchMethod"),
-                                 (17, "deferFault"), (-32601, "SESSION_TEST")]:
+        for code, methodName in calls:
             d = self.proxy().callRemote(methodName)
             d = self.assertFailure(d, jsonrpclib.Fault)
             d.addCallback(
                 lambda exc, code=code: self.assertEquals(exc.faultCode, code))
             dl.append(d)
         d = defer.DeferredList(dl, fireOnOneErrback=True)
-        d.addCallback(lambda ign: self.flushLoggedErrors())
+        d.addCallbacks(lambda ign: self.flushLoggedErrors())
         return d
 
 
@@ -210,14 +200,15 @@ class JSONRPCMethodMaxLengthTestCase(JSONRPCTestCase):
 class JSONRPCTestIntrospection(JSONRPCTestCase):
 
     def setUp(self):
-        server = jsonrpc.RPCFactory(Test)
+        server = jsonrpc.RPCFactory(TestRPC)
         server.addIntrospection()
         self.p = reactor.listenTCP(0, server, interface="127.0.0.1")
         self.port = self.p.getHost().port
 
     def testListMethods(self):
 
-        def cbMethods(meths):
+        def cbMethods(result):
+            meths = result['result'][0]
             meths.sort()
             self.failUnlessEqual(
                 meths,
@@ -232,28 +223,19 @@ class JSONRPCTestIntrospection(JSONRPCTestCase):
         return d
 
     def testMethodHelp(self):
-        inputOutputs = [
-            ("defer", "Help for defer."),
-            ("fail", ""),
-            ("dict", "Help for dict.")]
-
-        dl = []
-        for meth, expected in inputOutputs:
-            d = self.proxy().callRemote("system.methodHelp", meth)
-            d.addCallback(self.assertEquals, expected)
-            dl.append(d)
-        return defer.DeferredList(dl, fireOnOneErrback=True)
+        d = self.proxy().callRemote('system.methodHelp', 'defer')
+        d.addCallback(
+            lambda result: self.assertEquals('Help for defer.', result['result'][0]))
+        return d
 
     def testMethodSignature(self):
-        inputOutputs = [
-            ("defer", ""),
-            ("add", [['int', 'int', 'int'],
-                     ['double', 'double', 'double']]),
-            ("pair", [['array', 'string', 'int']])]
+        expected = {
+            'id': None,
+            'jsonrpc': '2.0',
+            'result': [[['int', 'int', 'int'], ['double', 'double', 'double']]]
+            }
 
-        dl = []
-        for meth, expected in inputOutputs:
-            d = self.proxy().callRemote("system.methodSignature", meth)
-            d.addCallback(self.assertEquals, expected)
-            dl.append(d)
-        return defer.DeferredList(dl, fireOnOneErrback=True)
+        d = self.proxy().callRemote('system.methodSignature', 'add')
+
+        d.addCallback(self.assertEquals, expected)
+        return d

@@ -144,10 +144,17 @@ class JSONRPCTestCase(unittest.TestCase):
         return defer.DeferredList(dl, fireOnOneErrback=True)
 
     def testErrors(self):
+        calls = [
+            (666, 'fail'),
+            (666, 'deferFail'),
+            (12, 'fault'),
+            (-32601, 'noSuchMethod'),
+            (17, 'deferFault'),
+            (42, 'SESSION_TEST'),
+            ]
+
         dl = []
-        for code, methodName in [(666, "fail"), (666, "deferFail"),
-                                 (12, "fault"), (-32601, "noSuchMethod"),
-                                 (17, "deferFault"), (42, "SESSION_TEST")]:
+        for code, methodName in calls:
             d = self.proxy().callRemote(methodName)
             d = self.assertFailure(d, jsonrpclib.Fault)
             d.addCallback(
@@ -229,6 +236,7 @@ class ProxyVersionPre1TestCase(JSONRPCTestCase):
         url = "http://127.0.0.1:%d/" % self.port
         return jsonrpc.Proxy(url, version=jsonrpclib.VERSION_PRE1)
 
+
 class ProxyVersion1TestCase(JSONRPCTestCase):
     """
     Tests for version 1.0.
@@ -238,7 +246,6 @@ class ProxyVersion1TestCase(JSONRPCTestCase):
         return jsonrpc.Proxy(url, version=jsonrpclib.VERSION_1)
 
 
-
 class ProxyVersion2TestCase(JSONRPCTestCase):
     """
     Tests for the version 2.0.
@@ -246,7 +253,6 @@ class ProxyVersion2TestCase(JSONRPCTestCase):
     def proxy(self):
         url = "http://127.0.0.1:%d/" % self.port
         return jsonrpc.Proxy(url, version=jsonrpclib.VERSION_2)
-
 
 
 class AuthenticatedProxyTestCase(JSONRPCTestCase):
@@ -264,8 +270,8 @@ class AuthenticatedProxyTestCase(JSONRPCTestCase):
 
     def testAuthInfoInURL(self):
         p = jsonrpc.Proxy(
-            "http://%s:%s@127.0.0.1:%d/" % (self.user, self.password,
-            self.port))
+            "http://%s:%s@127.0.0.1:%d/" % (
+                self.user, self.password, self.port))
         d = p.callRemote("authinfo")
         return d.addCallback(self.assertEquals, [self.user, self.password])
 

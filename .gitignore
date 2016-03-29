@@ -20,3 +20,4 @@ _trial_temp*
 .coverage
 .tox
 htmlcov
+docs/_build

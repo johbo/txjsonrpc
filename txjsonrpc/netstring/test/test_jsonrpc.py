@@ -8,20 +8,19 @@ from twisted.internet import reactor, defer
 from twisted.trial import unittest
 
 from txjsonrpc import jsonrpclib
+from txjsonrpc.jsonrpc import Introspection
 from txjsonrpc.netstring import jsonrpc
 from txjsonrpc.netstring.jsonrpc import (
     JSONRPC, Proxy, QueryFactory)
 
 
-class TestRuntimeError(RuntimeError):
-    pass
-
-
-class TestValueError(ValueError):
-    pass
-
-
 class TestRPC(JSONRPC):
+
+    class TestRuntimeError(RuntimeError):
+        pass
+
+    class TestValueError(ValueError):
+        pass
 
     FAILURE = 666
     NOT_FOUND = jsonrpclib.METHOD_NOT_FOUND
@@ -55,11 +54,11 @@ class TestRPC(JSONRPC):
         return defer.succeed(x)
 
     def jsonrpc_deferFail(self):
-        return defer.fail(TestValueError())
+        return defer.fail(self.TestValueError())
 
     def jsonrpc_fail(self):
         # Don't add a doc string, it's part of the test.
-        raise TestRuntimeError
+        raise self.TestRuntimeError
 
     def jsonrpc_fault(self):
         return jsonrpclib.Fault(12, "hello")
@@ -82,7 +81,6 @@ class TestRPC(JSONRPC):
 class QueryFactoryTestCase(unittest.TestCase):
 
     def testCreation(self):
-
         factory = QueryFactory("mymethod", "myarg1", "myarg2")
         self.assertEquals(factory.protocol.MAX_LENGTH, 99999)
 
@@ -197,8 +195,19 @@ class JSONRPCMethodMaxLengthTestCase(JSONRPCTestCase):
         return d
 
 
-class JSONRPCTestIntrospection(JSONRPCTestCase):
+class JSONRPCTestIntrospection(unittest.TestCase):
 
+    def testAddIntrospection(self):
+        """A 'system' subhandler is added."""
+        server = jsonrpc.RPCFactory(TestRPC)
+        server.addIntrospection()
+
+        self.assertTrue('system' in server.subHandlers)
+        system = server.subHandlers['system']
+        self.assertEqual(Introspection, system[0])
+
+
+class JSONRPCTestIntrospectionIntegration(JSONRPCTestCase):
     def setUp(self):
         server = jsonrpc.RPCFactory(TestRPC)
         server.addIntrospection()

@@ -11,6 +11,7 @@ API Stability: unstable
 Maintainer: U{Duncan McGreggor<mailto:oubiwann@adytum.us>}
 """
 from __future__ import nested_scopes, print_function
+import codecs
 try:
     import urlparse
 except ImportError:
@@ -21,6 +22,7 @@ try:
 except ImportError:
     import xmlrpc.client as xmlrpclib
 
+import six
 from twisted.web import resource, server
 from twisted.internet import defer, reactor
 from twisted.python import log, context
@@ -120,10 +122,12 @@ class JSONRPC(resource.Resource, BaseSubhandler):
         request.content.seek(0, 0)
         # Unmarshal the JSON-RPC data.
         content = request.content.read()
+        if isinstance(content, six.binary_type):
+            content = content.decode('utf-8')
         log.msg("Client({}): {}".format(request.client, content))
-        if not content and request.method=='GET' and request.args.has_key('request'):
-            content=request.args['request'][0]
-        self.callback = request.args['callback'][0] if request.args.has_key('callback') else None
+        if not content and request.method == 'GET' and 'request' in request.args:
+            content = request.args['request'][0]
+        self.callback = request.args['callback'][0] if 'callback' in request.args else None
         self.is_jsonp = True if self.callback else False
         parsed = jsonrpclib.loads(content)
         functionPath = parsed.get("method")
@@ -182,12 +186,13 @@ class JSONRPC(resource.Resource, BaseSubhandler):
                 result = (result,)
             # Convert the result (python) to JSON-RPC
         try:
-            s = jsonrpclib.dumps(result, id=id, version=version) if not self.is_jsonp else "%s(%s)" %(self.callback,jsonrpclib.dumps(result, id=id, version=version))
-        except:
+            s = jsonrpclib.dumps(result, id=id, version=version) if not self.is_jsonp else "%s(%s)" % (self.callback, jsonrpclib.dumps(result, id=id, version=version))
+        except Exception as e:
+            import pdb; pdb.set_trace()
             f = jsonrpclib.Fault(self.FAILURE, "can't serialize output")
-            s = jsonrpclib.dumps(f, id=id, version=version) if not self.is_jsonp else "%s(%s)" %(self.callback,jsonrpclib.dumps(f, id=id, version=version))
-        request.setHeader("content-length", str(len(s)))
-        request.write(s)
+            s = jsonrpclib.dumps(f, id=id, version=version) if not self.is_jsonp else "%s(%s)" % (self.callback, jsonrpclib.dumps(f, id=id, version=version))
+        request.setHeader(b'Content-Length', str(len(s)))
+        request.write(six.b(s))
         request.finish()
         return original_result
 
@@ -198,9 +203,9 @@ class JSONRPC(resource.Resource, BaseSubhandler):
         if isinstance(failure.value, jsonrpclib.Fault):
             return failure.value
         log.err(failure)
-        message = failure.value.message
-        code = self._map_exception(type(failure.value))
-        return jsonrpclib.Fault(code, message)
+        value = failure.value
+        code = self._map_exception(type(value))
+        return jsonrpclib.Fault(code, str(value))
 
     def auth(self, token, func):
         return True
@@ -209,23 +214,29 @@ class JSONRPC(resource.Resource, BaseSubhandler):
 class QueryProtocol(http.HTTPClient):
 
     def connectionMade(self):
-        self.sendCommand('POST', self.factory.path)
-        self.sendHeader('User-Agent', 'Twisted/JSONRPClib')
-        self.sendHeader('Host', self.factory.host)
-        self.sendHeader('Content-type', 'application/json')
-        self.sendHeader('Content-length', str(len(self.factory.payload)))
+        self.sendCommand(b'POST', six.b(self.factory.path))
+        self.sendHeader(b'User-Agent', b'Twisted/JSONRPClib')
+        self.sendHeader(b'Host', six.b(self.factory.host))
+        self.sendHeader(b'Content-type', b'application/json')
+        self.sendHeader(b'Content-length', str(len(self.factory.payload)))
         if self.factory.user:
             auth = '%s:%s' % (self.factory.user, self.factory.password)
-            auth = auth.encode('base64').strip()
-            self.sendHeader('Authorization', 'Basic %s' % (auth,))
+            auth = codecs.encode(six.b(auth), 'base64')
+            self.sendHeader(
+                b'Authorization',
+                b'Basic ' + auth)
         self.endHeaders()
-        self.transport.write(self.factory.payload)
+        self.transport.write(six.b(self.factory.payload))
 
     def handleStatus(self, version, status, message):
+        if isinstance(status, six.binary_type):
+            status = status.decode('utf-8')
         if status != '200':
             self.factory.badStatus(status, message)
 
     def handleResponse(self, contents):
+        if isinstance(contents, six.binary_type):
+            contents = contents.decode('utf-8')
         self.factory.parseResponse(contents)
 
 
@@ -252,7 +263,8 @@ class Proxy(BaseProxy):
     """
 
     def __init__(self, url, user=None, password=None,
-                 version=jsonrpclib.VERSION_PRE1, factoryClass=QueryFactory, ssl_ctx_factory = None):
+                 version=jsonrpclib.VERSION_PRE1,
+                 factoryClass=QueryFactory, ssl_ctx_factory=None):
         """
         @type url: C{str}
         @param url: The URL to which to post method calls.  Calls will be made
@@ -315,7 +327,8 @@ class Proxy(BaseProxy):
         version = self._getVersion(kwargs)
         # XXX generate unique id and pass it as a parameter
         factoryClass = self._getFactoryClass(kwargs)
-        factory = factoryClass(self.path, self.host, method, self.user,
+        factory = factoryClass(
+            self.path, self.host, method, self.user,
             self.password, version, *args)
         if self.secure:
             from twisted.internet import ssl

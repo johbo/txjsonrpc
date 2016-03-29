@@ -7,6 +7,7 @@ API Stability: semi-stable
 
 Maintainer: U{Duncan McGreggor <mailto:oubiwann@adytum.us>}
 """
+import six
 from twisted.internet import defer, protocol, reactor
 from twisted.protocols import basic
 from twisted.python import log
@@ -34,6 +35,7 @@ class JSONRPC(basic.NetstringReceiver, BaseSubhandler):
     closed = 0
 
     def __init__(self, version=jsonrpclib.VERSION_2):
+        # NetstringReciever has no __init__
         BaseSubhandler.__init__(self)
         self.version = version
 
@@ -45,6 +47,8 @@ class JSONRPC(basic.NetstringReceiver, BaseSubhandler):
 
     def stringReceived(self, line):
         parser, unmarshaller = jsonrpclib.getparser()
+        if isinstance(line, six.binary_type):
+            line = line.decode('utf-8')
         deferred = defer.maybeDeferred(parser.feed, line)
 
         req, req_id = self._cbDispatch(parser, unmarshaller)
@@ -70,7 +74,7 @@ class JSONRPC(basic.NetstringReceiver, BaseSubhandler):
         except:
             f = jsonrpclib.Fault(self.FAILURE, "can't serialize output")
             s = jsonrpclib.dumps(f, id=req_id, version=self.version)
-        return self.sendString(s)
+        return self.sendString(six.b(s))
 
     def _ebRender(self, failure, req_id):
         if isinstance(failure.value, jsonrpclib.Fault):
@@ -85,9 +89,11 @@ class QueryProtocol(basic.NetstringReceiver):
         self.data = ''
         msg = self.factory.payload
         packet = '%d:%s,' % (len(msg), msg)
-        self.transport.write(packet)
+        self.transport.write(six.b(packet))
 
     def stringReceived(self, string):
+        if isinstance(string, six.binary_type):
+            string = string.decode('utf-8')
         self.factory.data = string
         self.transport.loseConnection()
 

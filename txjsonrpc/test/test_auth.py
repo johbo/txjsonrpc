@@ -8,11 +8,18 @@ from txjsonrpc.auth import HTTPAuthRealm, wrapResource
 
 class HTTPAuthRealmTestCase(TestCase):
 
+    RESOURCE_NAME = 'Test Auth resource'
+
     def setUp(self):
-        self.realm = HTTPAuthRealm("a resource")
+        self.realm = HTTPAuthRealm(self.RESOURCE_NAME)
 
     def test_creation(self):
-        self.assertEquals(self.realm.resource, "a resource")
+        self.assertEquals(self.realm.resource, self.RESOURCE_NAME)
+
+    def test_logout(self):
+        """Logout of the realm causes no errors."""
+        # This isn't a great test, but it executes the code.
+        self.assertEquals(None, self.realm.logout())
 
     def test_requestAvatarWeb(self):
         from twisted.web.resource import IResource

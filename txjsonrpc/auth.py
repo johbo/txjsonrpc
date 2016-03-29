@@ -1,13 +1,12 @@
-from zope.interface import implements
+from zope.interface import implementer
 
 from twisted import web
 from twisted.cred.portal import IRealm, Portal
 from twisted.web import guard
 
 
+@implementer(IRealm)
 class HTTPAuthRealm(object):
-
-    implements(IRealm)
 
     def __init__(self, resource):
         self.resource = resource

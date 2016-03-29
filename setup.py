@@ -13,7 +13,7 @@ setup(
     url=meta.url,
     license=meta.license,
     packages=dist.findPackages(meta.library_name),
-    install_requires=['twisted'],
+    install_requires=['twisted', 'six'],
     long_description=dist.catReST(
         "docs/PRELUDE.txt",
         "README",

@@ -2,24 +2,21 @@
 Requires simplejson; can be downloaded from
 http://cheeseshop.python.org/pypi/simplejson
 """
-import xmlrpclib
+import json
 from datetime import datetime
 
-try:
-    import json
-except ImportError:
-    import simplejson as json
+from six.moves import xmlrpc_client
 
 
-# From xmlrpclib.
-SERVER_ERROR = xmlrpclib.SERVER_ERROR
-NOT_WELLFORMED_ERROR = xmlrpclib.NOT_WELLFORMED_ERROR
-UNSUPPORTED_ENCODING = xmlrpclib.UNSUPPORTED_ENCODING
-INVALID_ENCODING_CHAR = xmlrpclib.INVALID_ENCODING_CHAR
-INVALID_JSONRPC = xmlrpclib.INVALID_XMLRPC
-METHOD_NOT_FOUND = xmlrpclib.METHOD_NOT_FOUND
-INVALID_METHOD_PARAMS = xmlrpclib.INVALID_METHOD_PARAMS
-INTERNAL_ERROR = xmlrpclib.INTERNAL_ERROR
+# From xmlrpc_client.
+SERVER_ERROR = xmlrpc_client.SERVER_ERROR
+NOT_WELLFORMED_ERROR = xmlrpc_client.NOT_WELLFORMED_ERROR
+UNSUPPORTED_ENCODING = xmlrpc_client.UNSUPPORTED_ENCODING
+INVALID_ENCODING_CHAR = xmlrpc_client.INVALID_ENCODING_CHAR
+INVALID_JSONRPC = xmlrpc_client.INVALID_XMLRPC
+METHOD_NOT_FOUND = xmlrpc_client.METHOD_NOT_FOUND
+INVALID_METHOD_PARAMS = xmlrpc_client.INVALID_METHOD_PARAMS
+INTERNAL_ERROR = xmlrpc_client.INTERNAL_ERROR
 
 # Custom errors.
 METHOD_NOT_CALLABLE = -32604
@@ -29,15 +26,11 @@ VERSION_PRE1 = 0
 VERSION_1 = 1
 VERSION_2 = 2
 
-
-class Fault(xmlrpclib.Fault):
-    pass
+Fault = xmlrpc_client.Fault
 
 
 class NoSuchFunction(Fault):
-    """
-    There is no function by the given name.
-    """
+    """There is no function by the given name."""
 
 
 class JSONRPCEncoder(json.JSONEncoder):
@@ -139,7 +132,7 @@ def getparser():
     return parser, marshaller
 
 
-class Transport(xmlrpclib.Transport):
+class Transport(xmlrpc_client.Transport):
     """
     Handles an HTTP transaction to an XML-RPC server.
     """
@@ -174,13 +167,13 @@ def _v2Notification(method="", params=[], *args):
     return _v2Request(method=method, params=params, id=None)
 
 
-class ServerProxy(xmlrpclib.ServerProxy):
+class ServerProxy(xmlrpc_client.ServerProxy):
     """
     XXX add missing docstring
     """
     def __init__(self, uri, transport=Transport(), version=VERSION_PRE1, *args,
                  **kwds):
-        xmlrpclib.ServerProxy.__init__(self, uri, transport, *args, **kwds)
+        xmlrpc_client.ServerProxy.__init__(self, uri, transport, *args, **kwds)
         self.version = version
 
     def __request(self, *args):

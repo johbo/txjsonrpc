@@ -94,7 +94,12 @@ class BaseQueryFactory(protocol.ClientFactory):
             return
         try:
             # Convert the response from JSON-RPC to python.
-            result = jsonrpclib.loads(contents)
+            try:
+                result = jsonrpclib.loads(contents)
+            except ValueError:
+                # In Python 3, the exception message is not very
+                # user friendly.
+                raise ValueError('No JSON object could be decoded')
             if self.version != jsonrpclib.VERSION_PRE1:
                 result = result["result"]
             elif isinstance(result, list):

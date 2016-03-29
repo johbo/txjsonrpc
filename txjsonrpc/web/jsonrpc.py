@@ -187,8 +187,7 @@ class JSONRPC(resource.Resource, BaseSubhandler):
             # Convert the result (python) to JSON-RPC
         try:
             s = jsonrpclib.dumps(result, id=id, version=version) if not self.is_jsonp else "%s(%s)" % (self.callback, jsonrpclib.dumps(result, id=id, version=version))
-        except Exception as e:
-            import pdb; pdb.set_trace()
+        except:
             f = jsonrpclib.Fault(self.FAILURE, "can't serialize output")
             s = jsonrpclib.dumps(f, id=id, version=version) if not self.is_jsonp else "%s(%s)" % (self.callback, jsonrpclib.dumps(f, id=id, version=version))
         request.setHeader(b'Content-Length', str(len(s)))

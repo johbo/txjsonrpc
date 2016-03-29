@@ -1,18 +1,19 @@
 from setuptools import setup
 
-from txjsonrpc import meta
 from txjsonrpc.util import dist
 
 
 setup(
-    name=meta.display_name,
-    version=meta.version,
-    description=meta.description,
-    author=meta.author,
-    author_email=meta.author_email,
-    url=meta.url,
-    license=meta.license,
-    packages=dist.findPackages(meta.library_name),
+    name="txJSON-RPC",
+    version="0.5",
+    description="Code for creating Twisted JSON-RPC servers and clients.",
+    maintainer="Paul Hummer",
+    maintainer_email="paul@eventuallyanyway.com",
+    url="http://github.com/rockstar/txjsonrpc",
+    license="BSD, GPL",
+
+
+    packages=dist.findPackages('txjsonrpc'),
     install_requires=['twisted', 'six'],
     long_description=dist.catReST(
         "docs/PRELUDE.txt",

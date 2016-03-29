@@ -16,4 +16,7 @@ debian/files
 debian/*.log
 debian/*.substvars
 debian/python-txjsonrpc
-_trial_temp
+_trial_temp*
+.coverage
+.tox
+htmlcov

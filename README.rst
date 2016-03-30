@@ -16,3 +16,9 @@ Features
 
 * A jsonrpclib similar to the one for XLM-RPC offered by the Python standard
   library.
+
+
+.. image:: https://travis-ci.org/rockstar/txjsonrpc.svg?branch=master
+    :target: https://travis-ci.org/rockstar/txjsonrpc
+.. image:: https://readthedocs.org/projects/txjsonrpcdocs/badge/
+    :target: https://txjsonrpcdocs.readthedocs.org

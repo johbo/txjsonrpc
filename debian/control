@@ -10,7 +10,7 @@ Standards-Version: 3.9.6
 
 Package: python-txjsonrpc
 Architecture: all
-Depends: ${python:Depends}
+Depends: ${misc:Depends}, ${python:Depends}
 Suggests: socat
 Description: RPC modules (netstring and web, client and server) for Twisted
  This package implements basic client and server support for JSON-RPC

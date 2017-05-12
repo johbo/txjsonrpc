@@ -1,3 +1,9 @@
+python-txjsonrpc (0.3.1+git2) jessie; urgency=medium
+
+  * Update debian packaging.
+
+ -- Johannes Bornhold <johannes@bornhold.name>  Fri, 12 May 2017 09:37:50 +0000
+
 python-txjsonrpc (0.3.1+git1-1) smurf; urgency=low
 
   * Initial packaging.
